@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Daybreak — Alcohol-Free Tracker</title>
+<meta name="description" content="Track your alcohol-free journey: live progress, milestones, money saved, health benefits and craving support.">
+<meta name="theme-color" content="#0c111d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0c111d;
+  --ink-2:#121a2b;
+  --ink-3:#1a2439;
+  --line:rgba(244,196,120,.10);
+  --line-2:rgba(255,255,255,.07);
+  --text:#e9e4d8;
+  --text-dim:#9aa0b0;
+  --text-faint:#5e6577;
+  --dawn:#f4a259;
+  --gold:#f4c478;
+  --sage:#9fc490;
+  --rose:#e98a8a;
+  --sky:#8db4d8;
+  --radius:18px;
+  --pad:20px;
+  --font-display:"Fraunces", Georgia, serif;
+  --font-body:"Karla", -apple-system, sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--font-body);
+  background:var(--ink);
+  color:var(--text);
+  min-height:100dvh;
+  line-height:1.55;
+  overflow-x:hidden;
+}
+/* ---- atmosphere ---- */
+body::before{
+  content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
+  background:
+    radial-gradient(120% 60% at 50% -10%, rgba(244,162,89,.16), transparent 60%),
+    radial-gradient(80% 50% at 85% 110%, rgba(141,180,216,.08), transparent 60%),
+    var(--ink);
+}
+body::after{
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.035 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.app{max-width:520px;margin:0 auto;padding:0 var(--pad) calc(96px + env(safe-area-inset-bottom));}
+/* ---- header ---- */
+header{
+  padding:calc(18px + env(safe-area-inset-top)) 0 6px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.brand{display:flex;align-items:center;gap:10px}
+.brand svg{width:30px;height:30px;flex:none}
+.brand h1{font-family:var(--font-display);font-weight:500;font-size:1.3rem;letter-spacing:.02em;color:var(--gold)}
+.brand small{display:block;font-family:var(--font-body);font-size:.68rem;color:var(--text-faint);letter-spacing:.14em;text-transform:uppercase}
+#bellBtn,#gearBtn{
+  background:var(--ink-2);border:1px solid var(--line-2);color:var(--text-dim);
+  width:40px;height:40px;border-radius:12px;cursor:pointer;font-size:1.05rem;
+  transition:.2s;
+}
+#bellBtn.on{color:var(--gold);border-color:var(--line);box-shadow:0 0 18px rgba(244,196,120,.12)}
+/* ---- views ---- */
+.view{display:none;animation:rise .35s ease both}
+.view.active{display:block}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+h2.section{
+  font-family:var(--font-display);font-weight:400;font-size:1.45rem;color:var(--text);
+  margin:26px 0 4px;
+}
+p.sub{color:var(--text-dim);font-size:.9rem;margin-bottom:16px}
+/* ---- hero counter ---- */
+.hero{position:relative;text-align:center;padding:26px 0 10px}
+.hero .since{font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;color:var(--dawn);margin-bottom:10px}
+.days{
+  font-family:var(--font-display);font-weight:300;font-size:clamp(4.6rem,24vw,6.4rem);
+  line-height:.95;color:var(--text);
+  text-shadow:0 0 60px rgba(244,162,89,.25);
+  font-variant-numeric:tabular-nums;
+}
+.days em{font-style:normal;font-size:.22em;color:var(--text-dim);font-family:var(--font-body);font-weight:500;letter-spacing:.1em;vertical-align:super}
+.hms{
+  margin-top:6px;font-variant-numeric:tabular-nums;
+  font-size:1.05rem;color:var(--text-dim);letter-spacing:.12em;
+}
+.hms b{color:var(--gold);font-weight:600}
+/* ---- progress ring ---- */
+.ringwrap{display:flex;align-items:center;gap:16px;background:var(--ink-2);
+  border:1px solid var(--line-2);border-radius:var(--radius);padding:16px;margin-top:22px}
+.ring{position:relative;width:76px;height:76px;flex:none}
+.ring svg{transform:rotate(-90deg)}
+.ring .track{stroke:var(--ink-3);fill:none;stroke-width:7}
+.ring .bar{stroke:url(#dawnGrad);fill:none;stroke-width:7;stroke-linecap:round;transition:stroke-dashoffset 1s linear}
+.ring .pct{position:absolute;inset:0;display:grid;place-items:center;font-size:.8rem;font-weight:700;color:var(--gold)}
+.ringwrap .nxt{min-width:0}
+.ringwrap .nxt .label{font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint)}
+.ringwrap .nxt .name{font-family:var(--font-display);font-size:1.15rem;color:var(--text);margin:2px 0}
+.ringwrap .nxt .eta{font-size:.82rem;color:var(--text-dim)}
+/* ---- stat cards ---- */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.stat{
+  background:var(--ink-2);border:1px solid var(--line-2);border-radius:var(--radius);
+  padding:16px;position:relative;overflow:hidden;
+}
+.stat::after{content:"";position:absolute;inset:auto -30% -60% auto;width:120px;height:120px;border-radius:50%;
+  background:radial-gradient(circle, var(--c, rgba(244,196,120,.12)), transparent 70%)}
+.stat .k{font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--text-faint)}
+.stat .v{font-family:var(--font-display);font-size:1.7rem;font-weight:500;margin-top:4px;font-variant-numeric:tabular-nums}
+.stat .d{font-size:.75rem;color:var(--text-dim)}
+.stat.money .v{color:var(--sage)} .stat.money{--c:rgba(159,196,144,.14)}
+.stat.units .v{color:var(--sky)} .stat.units{--c:rgba(141,180,216,.14)}
+/* ---- milestones ---- */
+.miles{margin-top:8px;position:relative;padding-left:26px}
+.miles::before{content:"";position:absolute;left:8px;top:8px;bottom:14px;width:2px;
+  background:linear-gradient(var(--dawn), var(--ink-3))}
+.mile{position:relative;padding:10px 0 14px}
+.mile .dot{position:absolute;left:-26px;top:14px;width:18px;height:18px;border-radius:50%;
+  background:var(--ink-2);border:2px solid var(--ink-3);display:grid;place-items:center;font-size:.55rem}
+.mile.done .dot{background:var(--dawn);border-color:var(--dawn);color:#241303}
+.mile.done .dot::after{content:"✓";font-weight:800}
+.mile .t{font-weight:700;font-size:.95rem}
+.mile.done .t{color:var(--gold)}
+.mile .w{font-size:.82rem;color:var(--text-dim)}
+.mile .when{font-size:.72rem;color:var(--text-faint)}
+/* ---- health timeline ---- */
+.health .mile .dot{border-color:#2a3b2f}
+.health .mile.done .dot{background:var(--sage);border-color:var(--sage);color:#13240f}
+.health .mile.done .t{color:var(--sage)}
+.health .miles::before{background:linear-gradient(var(--sage), var(--ink-3))}
+/* ---- cards / lists ---- */
+.card{background:var(--ink-2);border:1px solid var(--line-2);border-radius:var(--radius);padding:18px;margin-top:12px}
+.tip{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px dashed var(--line-2)}
+.tip:last-child{border-bottom:0}
+.tip .ico{font-size:1.2rem;flex:none;width:34px;height:34px;display:grid;place-items:center;
+  background:var(--ink-3);border-radius:10px}
+.tip b{display:block;font-size:.92rem}
+.tip span{font-size:.84rem;color:var(--text-dim)}
+/* ---- journal ---- */
+.moodrow{display:flex;justify-content:space-between;gap:6px;margin:10px 0 4px}
+.mood{flex:1;aspect-ratio:1;max-width:60px;font-size:1.5rem;background:var(--ink-3);border:2px solid transparent;
+  border-radius:14px;cursor:pointer;transition:.15s;display:grid;place-items:center}
+.mood.sel{border-color:var(--gold);transform:scale(1.08);background:rgba(244,196,120,.1)}
+label.f{display:block;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);margin:14px 0 6px}
+input[type=range]{width:100%;accent-color:var(--dawn)}
+textarea,input[type=text],input[type=number],input[type=datetime-local]{
+  width:100%;background:var(--ink-3);border:1px solid var(--line-2);border-radius:12px;
+  color:var(--text);font-family:var(--font-body);font-size:.95rem;padding:12px;outline:none;
+}
+textarea:focus,input:focus{border-color:rgba(244,196,120,.4)}
+textarea{resize:vertical;min-height:70px}
+.btn{
+  display:inline-block;width:100%;text-align:center;border:0;cursor:pointer;margin-top:14px;
+  background:linear-gradient(135deg, var(--dawn), var(--gold));color:#241303;
+  font-family:var(--font-body);font-weight:700;font-size:.95rem;letter-spacing:.04em;
+  padding:14px;border-radius:14px;transition:.2s;
+}
+.btn:active{transform:scale(.98)}
+.btn.ghost{background:var(--ink-3);color:var(--text-dim);border:1px solid var(--line-2)}
+.btn.danger{background:none;border:1px solid rgba(233,138,138,.35);color:var(--rose)}
+.streakgrid{display:grid;grid-template-columns:repeat(14,1fr);gap:5px;margin-top:10px}
+.daycell{aspect-ratio:1;border-radius:5px;background:var(--ink-3)}
+.daycell.in{background:rgba(159,196,144,.5)}
+.daycell.today{outline:2px solid var(--gold)}
+.entry{padding:10px 0;border-bottom:1px dashed var(--line-2);font-size:.88rem}
+.entry:last-child{border:0}
+.entry .eh{display:flex;justify-content:space-between;color:var(--text-dim);font-size:.78rem}
+/* ---- nav ---- */
+nav{
+  position:fixed;bottom:0;left:0;right:0;z-index:50;
+  background:rgba(12,17,29,.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-top:1px solid var(--line-2);
+  padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+}
+.navin{max-width:520px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr 1.2fr 1fr 1fr;align-items:center}
+.navbtn{background:none;border:0;color:var(--text-faint);font-family:var(--font-body);
+  font-size:.62rem;letter-spacing:.06em;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0}
+.navbtn .i{font-size:1.25rem;line-height:1}
+.navbtn.active{color:var(--gold)}
+.sosbtn{
+  justify-self:center;width:62px;height:62px;border-radius:50%;border:0;cursor:pointer;
+  background:radial-gradient(circle at 35% 30%, #f0a0a0, #d96a6a 70%);
+  color:#3a0f0f;font-weight:800;font-size:.8rem;letter-spacing:.08em;
+  box-shadow:0 6px 24px rgba(233,138,138,.35), 0 0 0 6px rgba(233,138,138,.08);
+  transform:translateY(-14px);transition:.2s;
+}
+.sosbtn:active{transform:translateY(-14px) scale(.94)}
+/* ---- SOS overlay ---- */
+.overlay{position:fixed;inset:0;z-index:100;background:rgba(9,12,20,.96);backdrop-filter:blur(8px);
+  display:none;overflow-y:auto;padding:30px var(--pad) 40px}
+.overlay.open{display:block;animation:rise .3s ease both}
+.overlay .inner{max-width:520px;margin:0 auto}
+.closex{position:sticky;top:0;float:right;background:var(--ink-3);border:1px solid var(--line-2);
+  color:var(--text-dim);width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:1rem}
+.breath{
+  width:190px;height:190px;margin:26px auto;position:relative;display:grid;place-items:center;
+}
+.breath .c{position:absolute;inset:0;border-radius:50%;
+  background:radial-gradient(circle, rgba(233,138,138,.25), rgba(233,138,138,.05) 70%);
+  border:1px solid rgba(233,138,138,.4);
+  transform:scale(.6);transition:transform 4s ease-in-out}
+.breath .txt{position:relative;font-family:var(--font-display);font-size:1.2rem;color:var(--text)}
+.breath .cnt{position:absolute;bottom:34px;font-size:.8rem;color:var(--text-dim);font-variant-numeric:tabular-nums}
+/* ---- celebration ---- */
+#toast{
+  position:fixed;top:calc(14px + env(safe-area-inset-top));left:50%;transform:translateX(-50%) translateY(-120%);
+  z-index:200;background:linear-gradient(135deg,var(--dawn),var(--gold));color:#241303;
+  padding:12px 20px;border-radius:14px;font-weight:700;font-size:.9rem;max-width:90%;
+  box-shadow:0 10px 40px rgba(244,162,89,.4);transition:transform .4s cubic-bezier(.2,1.4,.4,1), opacity .3s;
+  opacity:0;pointer-events:none;
+}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+/* ---- setup ---- */
+.setup-hero{text-align:center;padding:40px 0 10px}
+.setup-hero .sun{width:90px;height:90px;margin:0 auto 18px;animation:sunpulse 4s ease-in-out infinite}
+@keyframes sunpulse{0%,100%{filter:drop-shadow(0 0 18px rgba(244,162,89,.35))}50%{filter:drop-shadow(0 0 36px rgba(244,162,89,.6))}}
+.setup-hero h1{font-family:var(--font-display);font-weight:400;font-size:2.1rem;color:var(--text)}
+.setup-hero p{color:var(--text-dim);margin-top:6px;font-size:.95rem}
+.small{font-size:.78rem;color:var(--text-faint)}
+.rowkv{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px dashed var(--line-2);font-size:.9rem}
+.rowkv:last-child{border:0}
+hr.sp{border:0;border-top:1px dashed var(--line-2);margin:16px 0}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs>
+<linearGradient id="dawnGrad" x1="0" y1="0" x2="1" y2="1">
+  <stop offset="0" stop-color="#f4a259"/><stop offset="1" stop-color="#f4c478"/>
+</linearGradient>
+<linearGradient id="sunG" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#f4c478"/><stop offset="1" stop-color="#e98a5a"/>
+</linearGradient>
+</defs></svg>
+
+<div class="app">
+  <header>
+    <div class="brand">
+      <svg viewBox="0 0 32 32"><circle cx="16" cy="18" r="8" fill="url(#sunG)"/><path d="M2 24h28" stroke="#f4c478" stroke-width="2" stroke-linecap="round"/><path d="M16 4v4M6 9l2.5 2.5M26 9l-2.5 2.5" stroke="#f4a259" stroke-width="2" stroke-linecap="round"/></svg>
+      <div><h1>Daybreak</h1><small>alcohol-free tracker</small></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button id="bellBtn" title="Hourly reminders">🔔</button>
+      <button id="gearBtn" title="Settings">⚙️</button>
+    </div>
+  </header>
+
+  <!-- ============ SETUP ============ -->
+  <section id="view-setup" class="view">
+    <div class="setup-hero">
+      <svg class="sun" viewBox="0 0 32 32"><circle cx="16" cy="18" r="8" fill="url(#sunG)"/><path d="M2 24h28" stroke="#f4c478" stroke-width="2" stroke-linecap="round"/><path d="M16 4v4M6 9l2.5 2.5M26 9l-2.5 2.5" stroke="#f4a259" stroke-width="2" stroke-linecap="round"/></svg>
+      <h1>Every hour is a<br>step toward morning.</h1>
+      <p>Set your start and watch the benefits build — hour by hour, day by day.</p>
+    </div>
+    <div class="card">
+      <label class="f">When did you stop drinking?</label>
+      <input type="datetime-local" id="suStart">
+      <label class="f">Typical weekly spend on alcohol (£)</label>
+      <input type="number" id="suSpend" placeholder="e.g. 40" min="0" inputmode="decimal">
+      <label class="f">Typical units per week <span style="text-transform:none;letter-spacing:0">(pint ≈ 2.3, glass of wine ≈ 2.1, shot ≈ 1)</span></label>
+      <input type="number" id="suUnits" placeholder="e.g. 20" min="0" inputmode="decimal">
+      <label class="f">Your reasons for stopping (shown when cravings hit)</label>
+      <textarea id="suWhy" placeholder="Better sleep, my family, my health, saving for a holiday…"></textarea>
+      <button class="btn" id="suGo">Begin my journey ☀️</button>
+    </div>
+  </section>
+
+  <!-- ============ HOME ============ -->
+  <section id="view-home" class="view">
+    <div class="hero">
+      <div class="since">Alcohol-free for</div>
+      <div class="days" id="bigDays">0<em>DAYS</em></div>
+      <div class="hms" id="hms"><b>00</b> hrs · <b>00</b> min · <b>00</b> sec</div>
+    </div>
+    <div class="ringwrap">
+      <div class="ring">
+        <svg width="76" height="76"><circle class="track" cx="38" cy="38" r="32"/><circle class="bar" id="ringBar" cx="38" cy="38" r="32" stroke-dasharray="201" stroke-dashoffset="201"/></svg>
+        <div class="pct" id="ringPct">0%</div>
+      </div>
+      <div class="nxt">
+        <div class="label">Next milestone</div>
+        <div class="name" id="nxtName">24 hours</div>
+        <div class="eta" id="nxtEta"></div>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat money"><div class="k">Money saved</div><div class="v" id="statMoney">£0</div><div class="d" id="statMoneyD">and counting…</div></div>
+      <div class="stat units"><div class="k">Units avoided</div><div class="v" id="statUnits">0</div><div class="d" id="statUnitsD">your body thanks you</div></div>
+    </div>
+    <h2 class="section">Milestones</h2>
+    <p class="sub">Each one is yours to keep.</p>
+    <div class="miles" id="mileList"></div>
+  </section>
+
+  <!-- ============ HEALTH ============ -->
+  <section id="view-health" class="view health">
+    <h2 class="section">Your body, healing</h2>
+    <p class="sub">What's happening inside you right now — and what's coming.</p>
+    <div class="miles" id="healthList"></div>
+    <p class="small" style="margin-top:14px">General guidance, not medical advice. If you drink heavily every day, speak to your GP before stopping suddenly — withdrawal can need medical support.</p>
+  </section>
+
+  <!-- ============ JOURNAL ============ -->
+  <section id="view-journal" class="view">
+    <h2 class="section">Daily check-in</h2>
+    <p class="sub" id="ciPrompt">How are you feeling today?</p>
+    <div class="card">
+      <div class="moodrow" id="moodRow">
+        <button class="mood" data-m="1">😣</button>
+        <button class="mood" data-m="2">😕</button>
+        <button class="mood" data-m="3">😐</button>
+        <button class="mood" data-m="4">🙂</button>
+        <button class="mood" data-m="5">😄</button>
+      </div>
+      <label class="f">Craving level: <span id="cravVal">0</span>/10</label>
+      <input type="range" id="cravRange" min="0" max="10" value="0">
+      <label class="f">Notes (optional)</label>
+      <textarea id="ciNote" placeholder="What helped today? What was hard?"></textarea>
+      <button class="btn" id="ciSave">Save today's check-in</button>
+    </div>
+    <h2 class="section">Last 4 weeks</h2>
+    <p class="sub"><span id="streakLine">Check in daily to build your streak.</span></p>
+    <div class="card"><div class="streakgrid" id="streakGrid"></div></div>
+    <h2 class="section">History</h2>
+    <div class="card" id="entryList"><p class="small">No check-ins yet.</p></div>
+  </section>
+
+  <!-- ============ TIPS ============ -->
+  <section id="view-tips" class="view">
+    <h2 class="section">Tips that work</h2>
+    <p class="sub">Small moves that get you through the hard minutes.</p>
+    <div class="card" id="tipList"></div>
+  </section>
+
+  <!-- ============ SETTINGS ============ -->
+  <section id="view-settings" class="view">
+    <h2 class="section">Settings</h2>
+    <div class="card">
+      <label class="f">Start date &amp; time</label>
+      <input type="datetime-local" id="setStart">
+      <label class="f">Weekly spend (£)</label>
+      <input type="number" id="setSpend" min="0" inputmode="decimal">
+      <label class="f">Units per week</label>
+      <input type="number" id="setUnits" min="0" inputmode="decimal">
+      <label class="f">My reasons</label>
+      <textarea id="setWhy"></textarea>
+      <button class="btn" id="setSave">Save changes</button>
+    </div>
+    <div class="card">
+      <div class="rowkv"><span>Hourly progress reminders</span><b id="notifState">off</b></div>
+      <button class="btn ghost" id="notifBtn">Enable notifications</button>
+      <p class="small" style="margin-top:10px">Reminders fire while Daybreak is open or installed to your home screen. On iPhone: Share → Add to Home Screen for best results.</p>
+    </div>
+    <div class="card">
+      <p class="small" style="margin-bottom:4px"><b style="color:var(--text)">Had a drink?</b> It's a lapse, not a collapse. What matters is the next hour. Restart the clock — your history and everything you learned stays with you.</p>
+      <button class="btn danger" id="slipBtn">I had a drink — restart my clock</button>
+      <hr class="sp">
+      <button class="btn danger" id="wipeBtn" style="opacity:.6">Erase all data</button>
+    </div>
+  </section>
+</div>
+
+<!-- ============ NAV ============ -->
+<nav><div class="navin">
+  <button class="navbtn active" data-v="home"><span class="i">☀️</span>Today</button>
+  <button class="navbtn" data-v="health"><span class="i">🌿</span>Health</button>
+  <button class="sosbtn" id="sosOpen">SOS</button>
+  <button class="navbtn" data-v="journal"><span class="i">📓</span>Journal</button>
+  <button class="navbtn" data-v="tips"><span class="i">💡</span>Tips</button>
+</div></nav>
+
+<!-- ============ SOS OVERLAY ============ -->
+<div class="overlay" id="sos"><div class="inner">
+  <button class="closex" id="sosClose">✕</button>
+  <h2 class="section" style="margin-top:6px">This craving will pass.</h2>
+  <p class="sub">Most cravings fade within 20 minutes. Breathe with the circle — in 4, hold 7, out 8.</p>
+  <div class="breath">
+    <div class="c" id="bCircle"></div>
+    <div class="txt" id="bText">ready…</div>
+    <div class="cnt" id="bCount"></div>
+  </div>
+  <button class="btn" id="bStart">Start breathing</button>
+  <div class="card">
+    <label class="f" style="margin-top:0">Why you're doing this</label>
+    <p id="sosWhy" style="font-family:var(--font-display);font-size:1.05rem;line-height:1.6"></p>
+  </div>
+  <div class="card">
+    <label class="f" style="margin-top:0">Right now you could…</label>
+    <div class="tip"><div class="ico">🚶</div><div><b>Change the scene</b><span>Walk around the block. Cravings live in rooms — leave the room.</span></div></div>
+    <div class="tip"><div class="ico">🥤</div><div><b>Pour something else</b><span>Sparkling water with lime, alcohol-free beer, tea. Hand and mouth busy.</span></div></div>
+    <div class="tip"><div class="ico">📞</div><div><b>Tell one person</b><span>Text someone "craving right now". Saying it out loud halves it.</span></div></div>
+    <div class="tip"><div class="ico">⏲️</div><div><b>Delay 20 minutes</b><span>Don't decide "never". Just decide "not in the next 20 minutes".</span></div></div>
+  </div>
+  <div class="card" style="text-align:center">
+    <div class="small">You've already been alcohol-free for</div>
+    <div style="font-family:var(--font-display);font-size:1.6rem;color:var(--gold)" id="sosTime"></div>
+    <div class="small">Don't give that away to one drink.</div>
+  </div>
+  <p class="small" style="margin-top:14px;text-align:center">Struggling badly? Drinkline (UK): 0300 123 1110 · In crisis call 111 or 999.</p>
+</div></div>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+/* ================= state ================= */
+const LS = "daybreak.v1";
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+let S = load();
+function load(){ try{ return JSON.parse(localStorage.getItem(LS)) || null }catch(e){ return null } }
+function save(){ localStorage.setItem(LS, JSON.stringify(S)) }
+function defaults(start){
+  return { start, spendWk:0, unitsWk:0, why:"", notif:false,
+    lastHourly:0, lastMilestone:0, entries:{}, slips:[] };
+}
+
+/* ================= milestones ================= */
+const H = 3600e3, D = 24*H;
+const MILES = [
+  [12*H, "12 hours", "Blood alcohol is back to zero. The hardest part has begun — and you're doing it."],
+  [D, "24 hours", "One full day. Blood sugar levels begin to normalise."],
+  [2*D, "48 hours", "Alcohol has fully left your system. Taste and smell start to sharpen."],
+  [3*D, "72 hours", "For most people the worst physical withdrawal is behind you."],
+  [7*D, "1 week", "Sleep is getting deeper. Skin more hydrated. Mornings feel different."],
+  [14*D, "2 weeks", "Stomach lining recovering; reflux eases. Many notice weight loss begins."],
+  [30*D, "1 month", "Liver fat can fall by around 15%. Blood pressure improving. Clearer skin."],
+  [60*D, "2 months", "Mood and anxiety noticeably steadier as brain chemistry rebalances."],
+  [90*D, "3 months", "Energy and concentration markedly better. Deeper, more restorative sleep."],
+  [182*D, "6 months", "Immune system stronger. Liver function substantially recovered for most."],
+  [365*D, "1 year", "A whole year. Risk of heart and liver disease and several cancers is falling."],
+];
+const HEALTH = [
+  [1*H, "1 hour", "Your liver has started clearing alcohol from your blood."],
+  [12*H, "12 hours", "Blood alcohol at zero. Your body shifts from processing to repairing."],
+  [D, "24 hours", "Blood sugar normalising. Anxiety may spike — it's chemical, and it passes."],
+  [2*D, "48 hours", "System fully clear. Hydration restored; headaches and fog lifting."],
+  [3*D, "72 hours", "Physical withdrawal peak over. Carb cravings are normal — eat, don't drink."],
+  [7*D, "1 week", "REM sleep returning — real rest, not blackout sleep. Skin rehydrating."],
+  [14*D, "2 weeks", "Stomach lining healing, acid reflux easing, and the liver is already repairing."],
+  [30*D, "1 month", "Liver fat down ~15%. Lower blood pressure. Many report brighter mood and skin."],
+  [90*D, "3 months", "Blood cells renewing. Noticeably better focus, energy and emotional stability."],
+  [182*D, "6 months", "Stronger immunity. If you had fatty liver, it may be largely reversed."],
+  [365*D, "1 year", "Significantly lower risk of stroke, liver disease, heart disease and 7 cancer types."],
+];
+const TIPS = [
+  ["🧠","Know your 20 minutes","A craving is a wave — it builds, peaks, and breaks, usually inside 20 minutes. You only have to outlast the wave, not the ocean."],
+  ["🗓️","Dodge the danger hours","Most relapses happen at predictable times — Friday 6pm, after arguments, when bored. Plan those hours in advance: gym, film, call, bath."],
+  ["🥤","Replace the ritual","It's often the ritual you miss, not the alcohol. Keep the glass, the fizz, the wind-down — swap the contents. Stock alcohol-free options before you need them."],
+  ["💬","Say it out loud","Tell a friend what you're doing. Accountability doubles success rates — and nobody good will think less of you."],
+  ["🏃","Move when it hits","Exercise blunts cravings within minutes and rebuilds the dopamine system drinking flattened. A brisk 10-minute walk counts."],
+  ["🛌","Guard your sleep","Tiredness is craving fuel. The first week of sleep may be rough — it flips around day 7 into the best sleep you've had in years."],
+  ["🍫","Eat before you decide","Low blood sugar masquerades as craving (HALT: hungry, angry, lonely, tired). Eat something, then see if you still want it."],
+  ["💷","Spend the savings","Make the money visible. Watch the saved total on your Today screen and actually spend it on something you want — the reward must be real."],
+  ["🧩","One hour at a time","'Forever' is heavy; an hour is light. You never have to quit forever — just don't drink this hour. Hours stack into a life."],
+  ["🤝","Get backup","Free UK support: Drinkline 0300 123 1110, NHS Drink Free Days app, local AA/SMART meetings. Using help isn't weakness — it's strategy."],
+];
+
+/* ================= views ================= */
+function show(v){
+  $$(".view").forEach(x=>x.classList.remove("active"));
+  $("#view-"+v).classList.add("active");
+  $$(".navbtn").forEach(b=>b.classList.toggle("active", b.dataset.v===v));
+  if(v==="journal") renderJournal();
+  if(v==="health") renderHealth();
+  window.scrollTo({top:0});
+}
+$$(".navbtn").forEach(b=>b.onclick=()=>show(b.dataset.v));
+
+/* ================= helpers ================= */
+const pad = n => String(n).padStart(2,"0");
+function elapsed(){ return Date.now() - S.start }
+function fmtDur(ms){
+  const d = Math.floor(ms/D), h = Math.floor(ms%D/H), m = Math.floor(ms%H/60000);
+  if(d>0) return `${d} day${d!==1?"s":""} ${h} hr`;
+  if(h>0) return `${h} hr ${m} min`;
+  return `${m} min`;
+}
+function money(ms){ return S.spendWk * ms / (7*D) }
+function units(ms){ return S.unitsWk * ms / (7*D) }
+function toast(msg){
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 4200);
+}
+function localDT(ts){
+  const d = new Date(ts - new Date(ts).getTimezoneOffset()*60000);
+  return d.toISOString().slice(0,16);
+}
+function dayKey(d){ return d.toISOString().slice(0,10) }
+
+/* ================= render: home tick ================= */
+function tick(){
+  if(!S) return;
+  const ms = elapsed();
+  if(ms < 0) return;
+  const days = Math.floor(ms/D);
+  $("#bigDays").innerHTML = `${days}<em>DAY${days!==1?"S":""}</em>`;
+  $("#hms").innerHTML = `<b>${pad(Math.floor(ms%D/H))}</b> hrs · <b>${pad(Math.floor(ms%H/60000))}</b> min · <b>${pad(Math.floor(ms%60000/1000))}</b> sec`;
+  // next milestone ring
+  const next = MILES.find(m=>m[0]>ms);
+  const prev = [...MILES].reverse().find(m=>m[0]<=ms);
+  if(next){
+    const base = prev ? prev[0] : 0;
+    const p = (ms-base)/(next[0]-base);
+    $("#ringBar").style.strokeDashoffset = 201*(1-p);
+    $("#ringPct").textContent = Math.floor(p*100)+"%";
+    $("#nxtName").textContent = next[1];
+    $("#nxtEta").textContent = fmtDur(next[0]-ms)+" to go";
+  } else {
+    $("#ringBar").style.strokeDashoffset = 0;
+    $("#ringPct").textContent = "★";
+    $("#nxtName").textContent = "Beyond 1 year";
+    $("#nxtEta").textContent = "You're in rare company.";
+  }
+  $("#statMoney").textContent = "£"+money(ms).toFixed(2);
+  $("#statUnits").textContent = units(ms).toFixed(1);
+  $("#statMoneyD").textContent = `≈ £${(S.spendWk*52/12).toFixed(0)}/month back in your pocket`;
+  $("#sosTime").textContent = fmtDur(ms);
+  checkMilestones(ms);
+  checkHourly(ms);
+}
+function renderMiles(){
+  const ms = elapsed();
+  $("#mileList").innerHTML = MILES.map(([t,name,why])=>{
+    const done = ms>=t;
+    const when = new Date(S.start+t);
+    return `<div class="mile ${done?"done":""}"><div class="dot"></div>
+      <div class="t">${name}</div><div class="w">${why}</div>
+      <div class="when">${done?"✓ achieved":"due"} ${when.toLocaleDateString("en-GB",{day:"numeric",month:"short"})}</div></div>`;
+  }).join("");
+}
+function renderHealth(){
+  const ms = elapsed();
+  $("#healthList").innerHTML = HEALTH.map(([t,name,why])=>{
+    const done = ms>=t;
+    return `<div class="mile ${done?"done":""}"><div class="dot"></div>
+      <div class="t">${name}</div><div class="w">${why}</div></div>`;
+  }).join("");
+}
+function renderTips(){
+  $("#tipList").innerHTML = TIPS.map(([i,t,d])=>
+    `<div class="tip"><div class="ico">${i}</div><div><b>${t}</b><span>${d}</span></div></div>`).join("");
+}
+
+/* ================= notifications ================= */
+async function notify(title, body){
+  if(!S.notif || !("Notification" in window) || Notification.permission!=="granted") return;
+  try{
+    const reg = await navigator.serviceWorker?.getRegistration();
+    if(reg) reg.showNotification(title, {body, icon:"icon-192.png", badge:"icon-192.png", tag:"daybreak"});
+    else new Notification(title, {body});
+  }catch(e){ try{ new Notification(title,{body}) }catch(_){} }
+}
+function checkMilestones(ms){
+  const hit = MILES.filter(m=>m[0]<=ms && m[0]>S.lastMilestone).pop();
+  if(hit){
+    S.lastMilestone = hit[0]; save();
+    toast(`🏆 Milestone: ${hit[1]} alcohol-free!`);
+    notify(`🏆 ${hit[1]} alcohol-free!`, hit[2]);
+    renderMiles();
+  }
+}
+function checkHourly(ms){
+  const hoursNow = Math.floor(ms/H);
+  if(hoursNotifiable() && hoursNow > S.lastHourly && hoursNow >= 1){
+    S.lastHourly = hoursNow; save();
+    notify(`☀️ ${fmtDur(ms)} alcohol-free`,
+      `£${money(ms).toFixed(2)} saved · ${units(ms).toFixed(1)} units avoided. Keep going — next stop: ${(MILES.find(m=>m[0]>ms)||[0,"the horizon"])[1]}.`);
+  }
+}
+function hoursNotifiable(){ return S.notif && Notification.permission==="granted" }
+async function toggleNotif(){
+  if(!("Notification" in window)){ toast("Notifications aren't supported in this browser."); return }
+  if(Notification.permission!=="granted"){
+    const p = await Notification.requestPermission();
+    if(p!=="granted"){ toast("Permission declined — reminders stay off."); return }
+  }
+  S.notif = !S.notif; save(); paintNotif();
+  if(S.notif){ toast("Hourly reminders on ☀️"); notify("Daybreak reminders on","You'll get a progress update every hour."); }
+  else toast("Reminders off");
+}
+function paintNotif(){
+  const on = hoursNotifiable();
+  $("#bellBtn").classList.toggle("on", on);
+  $("#notifState").textContent = on ? "on" : "off";
+  $("#notifBtn").textContent = on ? "Turn off reminders" : "Enable notifications";
+}
+$("#bellBtn").onclick = toggleNotif;
+$("#gearBtn").onclick = ()=>{ if(S) show("settings") };
+$("#notifBtn").onclick = toggleNotif;
+
+/* ================= journal ================= */
+let moodSel = 0;
+$$("#moodRow .mood").forEach(b=>b.onclick=()=>{
+  moodSel = +b.dataset.m;
+  $$("#moodRow .mood").forEach(x=>x.classList.toggle("sel", x===b));
+});
+$("#cravRange").oninput = e => $("#cravVal").textContent = e.target.value;
+$("#ciSave").onclick = ()=>{
+  const k = dayKey(new Date());
+  S.entries[k] = { m:moodSel, c:+$("#cravRange").value, n:$("#ciNote").value.trim(), t:Date.now() };
+  save(); toast("Check-in saved. See you tomorrow 🌙"); renderJournal();
+};
+function renderJournal(){
+  const today = dayKey(new Date());
+  const e = S.entries[today];
+  $("#ciPrompt").textContent = e ? "Checked in today ✓ — you can update it below." : "How are you feeling today?";
+  if(e){
+    moodSel = e.m;
+    $$("#moodRow .mood").forEach(x=>x.classList.toggle("sel", +x.dataset.m===e.m));
+    $("#cravRange").value = e.c; $("#cravVal").textContent = e.c;
+    $("#ciNote").value = e.n;
+  }
+  // streak grid: last 28 days
+  let cells = "", streak = 0, counting = true;
+  for(let i=27;i>=0;i--){
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const k = dayKey(d), has = !!S.entries[k];
+    cells += `<div class="daycell ${has?"in":""} ${k===today?"today":""}" title="${k}"></div>`;
+  }
+  for(let i=0;i<999;i++){
+    const d = new Date(); d.setDate(d.getDate()-i);
+    if(S.entries[dayKey(d)]) streak++;
+    else if(i===0) continue; // today not yet checked in doesn't break streak
+    else break;
+  }
+  $("#streakGrid").innerHTML = cells;
+  $("#streakLine").textContent = streak>0 ? `🔥 ${streak}-day check-in streak` : "Check in daily to build your streak.";
+  // history
+  const keys = Object.keys(S.entries).sort().reverse().slice(0,30);
+  $("#entryList").innerHTML = keys.length ? keys.map(k=>{
+    const x = S.entries[k];
+    const faces = ["","😣","😕","😐","🙂","😄"];
+    return `<div class="entry"><div class="eh"><span>${new Date(k).toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"})}</span><span>${faces[x.m]||""} craving ${x.c}/10</span></div>${x.n?`<div>${esc(x.n)}</div>`:""}</div>`;
+  }).join("") : `<p class="small">No check-ins yet.</p>`;
+}
+function esc(s){ return s.replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])) }
+
+/* ================= SOS / breathing ================= */
+$("#sosOpen").onclick = ()=>{ $("#sos").classList.add("open"); $("#sosWhy").textContent = S.why || "Add your reasons in Settings — they'll appear here when you need them."; };
+$("#sosClose").onclick = ()=>{ $("#sos").classList.remove("open"); stopBreath(); };
+let bTimer = null;
+const PHASES = [["Breathe in…",4,1],["Hold…",7,1],["Breathe out…",8,.6]];
+function stopBreath(){ clearInterval(bTimer); bTimer=null; $("#bStart").textContent="Start breathing"; $("#bText").textContent="ready…"; $("#bCount").textContent=""; $("#bCircle").style.transform="scale(.6)"; }
+$("#bStart").onclick = ()=>{
+  if(bTimer){ stopBreath(); return }
+  $("#bStart").textContent = "Stop";
+  let phase = 0, left = PHASES[0][1];
+  const stepIn = ()=>{
+    const [label,secs,scale] = PHASES[phase];
+    $("#bText").textContent = label; left = secs;
+    $("#bCircle").style.transitionDuration = secs+"s";
+    $("#bCircle").style.transform = `scale(${scale})`;
+    $("#bCount").textContent = left;
+  };
+  stepIn();
+  bTimer = setInterval(()=>{
+    left--;
+    if(left<=0){ phase=(phase+1)%3; stepIn(); }
+    else $("#bCount").textContent = left;
+  },1000);
+};
+
+/* ================= settings ================= */
+function paintSettings(){
+  $("#setStart").value = localDT(S.start);
+  $("#setSpend").value = S.spendWk || "";
+  $("#setUnits").value = S.unitsWk || "";
+  $("#setWhy").value = S.why;
+}
+$("#setSave").onclick = ()=>{
+  const t = new Date($("#setStart").value).getTime();
+  if(!isNaN(t) && t<=Date.now()) S.start = t;
+  S.spendWk = +$("#setSpend").value||0;
+  S.unitsWk = +$("#setUnits").value||0;
+  S.why = $("#setWhy").value.trim();
+  S.lastMilestone = 0; S.lastHourly = Math.floor(elapsed()/H);
+  save(); renderMiles(); tick(); toast("Saved ✓");
+};
+$("#slipBtn").onclick = ()=>{
+  if(!confirm("Restart your clock from now? Your journal and history are kept.")) return;
+  S.slips.push({at:Date.now(), lasted:elapsed()});
+  S.start = Date.now(); S.lastMilestone = 0; S.lastHourly = 0;
+  save(); renderMiles(); tick(); show("home");
+  toast("Clock restarted. A lapse is data, not defeat — you know more now. 🌅");
+};
+$("#wipeBtn").onclick = ()=>{
+  if(!confirm("Erase ALL Daybreak data? This cannot be undone.")) return;
+  localStorage.removeItem(LS); location.reload();
+};
+
+/* ================= setup ================= */
+$("#suGo").onclick = ()=>{
+  const v = $("#suStart").value;
+  const t = v ? new Date(v).getTime() : Date.now();
+  if(isNaN(t) || t > Date.now()){ toast("Start time can't be in the future."); return }
+  S = defaults(t);
+  S.spendWk = +$("#suSpend").value||0;
+  S.unitsWk = +$("#suUnits").value||0;
+  S.why = $("#suWhy").value.trim();
+  S.lastHourly = Math.floor((Date.now()-t)/H);
+  S.lastMilestone = [...MILES].reverse().find(m=>m[0]<=Date.now()-t)?.[0] || 0;
+  save(); boot();
+  toast("Journey started. One hour at a time ☀️");
+};
+
+/* ================= boot ================= */
+function boot(){
+  if(!S){
+    $("#suStart").value = localDT(Date.now());
+    show("setup");
+    document.querySelector("nav").style.display = "none";
+    return;
+  }
+  document.querySelector("nav").style.display = "";
+  renderMiles(); renderTips(); paintSettings(); paintNotif(); tick(); show("home");
+}
+boot();
+setInterval(tick, 1000);
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) tick() });
+
+/* ================= PWA ================= */
+if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+  navigator.serviceWorker.register("sw.js").then(async reg=>{
+    // best-effort background refresh where supported (Chrome/Android installed PWA)
+    try{
+      if("periodicSync" in reg){
+        const st = await navigator.permissions.query({name:"periodic-background-sync"});
+        if(st.state==="granted") await reg.periodicSync.register("daybreak-hourly",{minInterval:H});
+      }
+    }catch(e){}
+  }).catch(()=>{});
+}
+</script>
+</body>
+</html>
