@@ -35,14 +35,19 @@
   --font-body:"Karla", -apple-system, sans-serif;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html{scroll-behavior:smooth}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
 body{
   font-family:var(--font-body);
   background:var(--ink);
   color:var(--text);
-  min-height:100dvh;
   line-height:1.55;
-  overflow-x:hidden;
+  position:fixed;inset:0;width:100%;
+}
+/* body is locked; this inner container scrolls instead, so the
+   fixed nav can't drift on iOS Safari toolbar collapse/bounce */
+#scroller{
+  height:100%;overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;scroll-behavior:smooth;
 }
 /* ---- atmosphere ---- */
 body::before{
@@ -225,7 +230,7 @@ nav{
 .setup-hero{text-align:center;padding:40px 0 10px}
 .setup-hero .sun{width:90px;height:90px;margin:0 auto 18px;animation:sunpulse 4s ease-in-out infinite}
 @keyframes sunpulse{0%,100%{filter:drop-shadow(0 0 18px rgba(244,162,89,.35))}50%{filter:drop-shadow(0 0 36px rgba(244,162,89,.6))}}
-.setup-hero h1{font-family:var(--font-display);font-weight:400;font-size:2.1rem;color:var(--text)}
+.setup-hero h1{font-family:var(--font-display);font-weight:400;font-size:clamp(1.3rem,6.5vw,2.1rem);color:var(--text)}
 .setup-hero p{color:var(--text-dim);margin-top:6px;font-size:.95rem}
 .small{font-size:.78rem;color:var(--text-faint)}
 .rowkv{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px dashed var(--line-2);font-size:.9rem}
@@ -243,6 +248,7 @@ hr.sp{border:0;border-top:1px dashed var(--line-2);margin:16px 0}
 </linearGradient>
 </defs></svg>
 
+<div id="scroller">
 <div class="app">
   <header>
     <div class="brand">
@@ -369,6 +375,7 @@ hr.sp{border:0;border-top:1px dashed var(--line-2);margin:16px 0}
     </div>
   </section>
 </div>
+</div>
 
 <!-- ============ NAV ============ -->
 <nav><div class="navin">
@@ -473,7 +480,7 @@ function show(v){
   $$(".navbtn").forEach(b=>b.classList.toggle("active", b.dataset.v===v));
   if(v==="journal") renderJournal();
   if(v==="health") renderHealth();
-  window.scrollTo({top:0});
+  $("#scroller").scrollTo({top:0});
 }
 $$(".navbtn").forEach(b=>b.onclick=()=>show(b.dataset.v));
 
