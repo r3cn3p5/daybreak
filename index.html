@@ -363,7 +363,7 @@ hr.sp{border:0;border-top:1px dashed var(--line-2);margin:16px 0}
       <button class="btn" id="setSave">Save changes</button>
     </div>
     <div class="card">
-      <div class="rowkv"><span>Progress reminders<br><span class="small">every 30 min for the first 3 days, then hourly</span></span><b id="notifState">off</b></div>
+      <div class="rowkv"><span>Progress reminders<br><span class="small">every 30 min for the first 3 days, then hourly — plus a summary at each full week</span></span><b id="notifState">off</b></div>
       <button class="btn ghost" id="notifBtn">Enable notifications</button>
       <p class="small" style="margin-top:10px">Reminders fire while Daybreak is open or installed to your home screen. On iPhone: Share → Add to Home Screen for best results.</p>
     </div>
@@ -429,7 +429,7 @@ function load(){ try{ return JSON.parse(localStorage.getItem(LS)) || null }catch
 function save(){ localStorage.setItem(LS, JSON.stringify(S)) }
 function defaults(start){
   return { start, spendWk:0, unitsWk:0, why:"", notif:false,
-    lastPingAt:Date.now(), lastMilestone:0, entries:{}, slips:[] };
+    lastPingAt:Date.now(), lastMilestone:0, lastWeekly:0, entries:{}, slips:[] };
 }
 
 /* ================= milestones ================= */
@@ -549,6 +549,7 @@ function tick(){
   $("#sosTime").textContent = fmtDur(ms);
   checkMilestones(ms);
   checkHourly(ms);
+  checkWeekly(ms);
 }
 function renderMiles(){
   const ms = elapsed();
@@ -600,6 +601,24 @@ function checkHourly(ms){
   }
 }
 function hoursNotifiable(){ return S.notif && Notification.permission==="granted" }
+function weekStats(){
+  let n=0, crav=0;
+  for(let i=0;i<7;i++){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const e=S.entries[dayKey(d)];
+    if(e){ n++; crav+=e.c }
+  }
+  return n ? ` · ${n} check-in${n>1?"s":""} this week (avg craving ${(crav/n).toFixed(1)}/10)` : "";
+}
+function checkWeekly(ms){
+  const wk = Math.floor(ms/(7*D));
+  if(wk >= 1 && wk > (S.lastWeekly||0)){
+    S.lastWeekly = wk; save();
+    toast(`📅 Week ${wk} complete — brilliant going!`);
+    notify(`📅 Week ${wk} alcohol-free!`,
+      `£${money(ms).toFixed(0)} saved · ${units(ms).toFixed(0)} units avoided${weekStats()}. Next stop: ${(MILES.find(m=>m[0]>ms)||[0,"the horizon"])[1]}.`);
+  }
+}
 async function toggleNotif(){
   if(!S){ toast("Finish setup first — then reminders can start."); return }
   if(!("Notification" in window)){ toast("Notifications aren't supported in this browser."); return }
@@ -711,13 +730,14 @@ $("#setSave").onclick = ()=>{
   S.unitsWk = +$("#setUnits").value||0;
   S.why = $("#setWhy").value.trim();
   S.lastMilestone = [...MILES].reverse().find(m=>m[0]<=elapsed())?.[0] || 0;
+  S.lastWeekly = Math.floor(elapsed()/(7*D));
   S.lastPingAt = Date.now();
   save(); renderMiles(); tick(); toast("Saved ✓");
 };
 $("#slipBtn").onclick = ()=>{
   if(!confirm("Restart your clock from now? Your journal and history are kept.")) return;
   S.slips.push({at:Date.now(), lasted:elapsed()});
-  S.start = Date.now(); S.lastMilestone = 0; S.lastPingAt = Date.now();
+  S.start = Date.now(); S.lastMilestone = 0; S.lastWeekly = 0; S.lastPingAt = Date.now();
   save(); renderMiles(); tick(); show("home");
   toast("Clock restarted. A lapse is data, not defeat — you know more now. 🌅");
 };
@@ -736,6 +756,7 @@ $("#suGo").onclick = ()=>{
   S.unitsWk = +$("#suUnits").value||0;
   S.why = $("#suWhy").value.trim();
   S.lastMilestone = [...MILES].reverse().find(m=>m[0]<=Date.now()-t)?.[0] || 0;
+  S.lastWeekly = Math.floor((Date.now()-t)/(7*D));
   save(); boot();
   toast("Journey started. One hour at a time ☀️");
 };
@@ -743,6 +764,7 @@ $("#suGo").onclick = ()=>{
 /* ================= boot ================= */
 function boot(){
   if(S && !S.lastPingAt) S.lastPingAt = Date.now(); // migrate pre-adaptive-cadence data
+  if(S && S.lastWeekly==null) S.lastWeekly = Math.floor(elapsed()/(7*D)); // migrate: no retro weekly pings
   if(!S){
     $("#suStart").value = localDT(Date.now());
     show("setup");
