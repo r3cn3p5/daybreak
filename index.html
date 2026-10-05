@@ -435,17 +435,31 @@ function defaults(start){
 /* ================= milestones ================= */
 const H = 3600e3, D = 24*H;
 const MILES = [
+  [6*H, "6 hours", "The first evening is the steepest hill — and you're climbing it right now."],
   [12*H, "12 hours", "Blood alcohol is back to zero. The hardest part has begun — and you're doing it."],
   [D, "24 hours", "One full day. Blood sugar levels begin to normalise."],
   [2*D, "48 hours", "Alcohol has fully left your system. Taste and smell start to sharpen."],
   [3*D, "72 hours", "For most people the worst physical withdrawal is behind you."],
+  [5*D, "5 days", "Almost a full week. Cravings are getting shorter and further apart."],
   [7*D, "1 week", "Sleep is getting deeper. Skin more hydrated. Mornings feel different."],
+  [10*D, "10 days", "Double digits. The habit loop is weakening every single day."],
   [14*D, "2 weeks", "Stomach lining recovering; reflux eases. Many notice weight loss begins."],
+  [21*D, "3 weeks", "The classic habit-breaking mark. New routines are taking root."],
   [30*D, "1 month", "Liver fat can fall by around 15%. Blood pressure improving. Clearer skin."],
+  [45*D, "6 weeks", "Sharper mornings, steadier moods — the new normal is forming."],
   [60*D, "2 months", "Mood and anxiety noticeably steadier as brain chemistry rebalances."],
   [90*D, "3 months", "Energy and concentration markedly better. Deeper, more restorative sleep."],
+  [100*D, "100 days", "The famous hundred. People celebrate this number for a reason — you've rebuilt your defaults."],
+  [120*D, "4 months", "A third of a year. Your liver, sleep and skin have quietly transformed."],
+  [150*D, "5 months", "Five months of clear-headed mornings and honest sleep, banked."],
   [182*D, "6 months", "Immune system stronger. Liver function substantially recovered for most."],
+  [273*D, "9 months", "Three quarters of a year. Drinking is becoming something you used to do."],
   [365*D, "1 year", "A whole year. Risk of heart and liver disease and several cancers is falling."],
+  [548*D, "18 months", "A year and a half. You've handled every season, holiday and hard day without a drink."],
+  [730*D, "2 years", "Two years. This isn't a streak anymore — it's who you are."],
+  [1095*D, "3 years", "Three years of compound interest on your health, money and relationships."],
+  [1826*D, "5 years", "Five years. Long-term disease risks have fallen dramatically. Remarkable."],
+  [3652*D, "10 years", "A decade of daybreaks. Few ever see this number. You did."],
 ];
 const HEALTH = [
   [1*H, "1 hour", "Your liver has started clearing alcohol from your blood."],
@@ -526,7 +540,7 @@ function tick(){
   } else {
     $("#ringBar").style.strokeDashoffset = 0;
     $("#ringPct").textContent = "★";
-    $("#nxtName").textContent = "Beyond 1 year";
+    $("#nxtName").textContent = "Beyond " + MILES[MILES.length-1][1];
     $("#nxtEta").textContent = "You're in rare company.";
   }
   $("#statMoney").textContent = "£"+money(ms).toFixed(2);
