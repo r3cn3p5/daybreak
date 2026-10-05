@@ -256,7 +256,7 @@ hr.sp{border:0;border-top:1px dashed var(--line-2);margin:16px 0}
       <div><h1>Daybreak</h1><small>alcohol-free tracker</small></div>
     </div>
     <div style="display:flex;gap:8px">
-      <button id="bellBtn" title="Hourly reminders">🔔</button>
+      <button id="bellBtn" title="Progress reminders">🔔</button>
       <button id="gearBtn" title="Settings">⚙️</button>
     </div>
   </header>
@@ -363,7 +363,7 @@ hr.sp{border:0;border-top:1px dashed var(--line-2);margin:16px 0}
       <button class="btn" id="setSave">Save changes</button>
     </div>
     <div class="card">
-      <div class="rowkv"><span>Hourly progress reminders</span><b id="notifState">off</b></div>
+      <div class="rowkv"><span>Progress reminders<br><span class="small">every 30 min for the first 3 days, then hourly</span></span><b id="notifState">off</b></div>
       <button class="btn ghost" id="notifBtn">Enable notifications</button>
       <p class="small" style="margin-top:10px">Reminders fire while Daybreak is open or installed to your home screen. On iPhone: Share → Add to Home Screen for best results.</p>
     </div>
@@ -429,7 +429,7 @@ function load(){ try{ return JSON.parse(localStorage.getItem(LS)) || null }catch
 function save(){ localStorage.setItem(LS, JSON.stringify(S)) }
 function defaults(start){
   return { start, spendWk:0, unitsWk:0, why:"", notif:false,
-    lastHourly:0, lastMilestone:0, entries:{}, slips:[] };
+    lastPingAt:Date.now(), lastMilestone:0, entries:{}, slips:[] };
 }
 
 /* ================= milestones ================= */
@@ -591,23 +591,28 @@ function checkMilestones(ms){
     renderMiles();
   }
 }
+function pingInterval(ms){ return ms < 3*D ? 30*60e3 : H } // every 30 min for first 3 days, then hourly
 function checkHourly(ms){
-  const hoursNow = Math.floor(ms/H);
-  if(hoursNotifiable() && hoursNow > S.lastHourly && hoursNow >= 1){
-    S.lastHourly = hoursNow; save();
+  if(hoursNotifiable() && Date.now() - (S.lastPingAt||0) >= pingInterval(ms)){
+    S.lastPingAt = Date.now(); save();
     notify(`☀️ ${fmtDur(ms)} alcohol-free`,
       `£${money(ms).toFixed(2)} saved · ${units(ms).toFixed(1)} units avoided. Keep going — next stop: ${(MILES.find(m=>m[0]>ms)||[0,"the horizon"])[1]}.`);
   }
 }
 function hoursNotifiable(){ return S.notif && Notification.permission==="granted" }
 async function toggleNotif(){
+  if(!S){ toast("Finish setup first — then reminders can start."); return }
   if(!("Notification" in window)){ toast("Notifications aren't supported in this browser."); return }
   if(Notification.permission!=="granted"){
     const p = await Notification.requestPermission();
     if(p!=="granted"){ toast("Permission declined — reminders stay off."); return }
   }
   S.notif = !S.notif; save(); paintNotif();
-  if(S.notif){ toast("Hourly reminders on ☀️"); notify("Daybreak reminders on","You'll get a progress update every hour."); }
+  if(S.notif){
+    const mins = pingInterval(elapsed())/60000;
+    toast("Progress reminders on ☀️");
+    notify("Daybreak reminders on", `You'll get a progress update every ${mins===60?"hour":mins+" minutes"}.`);
+  }
   else toast("Reminders off");
 }
 function paintNotif(){
@@ -705,13 +710,14 @@ $("#setSave").onclick = ()=>{
   S.spendWk = +$("#setSpend").value||0;
   S.unitsWk = +$("#setUnits").value||0;
   S.why = $("#setWhy").value.trim();
-  S.lastMilestone = 0; S.lastHourly = Math.floor(elapsed()/H);
+  S.lastMilestone = [...MILES].reverse().find(m=>m[0]<=elapsed())?.[0] || 0;
+  S.lastPingAt = Date.now();
   save(); renderMiles(); tick(); toast("Saved ✓");
 };
 $("#slipBtn").onclick = ()=>{
   if(!confirm("Restart your clock from now? Your journal and history are kept.")) return;
   S.slips.push({at:Date.now(), lasted:elapsed()});
-  S.start = Date.now(); S.lastMilestone = 0; S.lastHourly = 0;
+  S.start = Date.now(); S.lastMilestone = 0; S.lastPingAt = Date.now();
   save(); renderMiles(); tick(); show("home");
   toast("Clock restarted. A lapse is data, not defeat — you know more now. 🌅");
 };
@@ -729,7 +735,6 @@ $("#suGo").onclick = ()=>{
   S.spendWk = +$("#suSpend").value||0;
   S.unitsWk = +$("#suUnits").value||0;
   S.why = $("#suWhy").value.trim();
-  S.lastHourly = Math.floor((Date.now()-t)/H);
   S.lastMilestone = [...MILES].reverse().find(m=>m[0]<=Date.now()-t)?.[0] || 0;
   save(); boot();
   toast("Journey started. One hour at a time ☀️");
@@ -737,6 +742,7 @@ $("#suGo").onclick = ()=>{
 
 /* ================= boot ================= */
 function boot(){
+  if(S && !S.lastPingAt) S.lastPingAt = Date.now(); // migrate pre-adaptive-cadence data
   if(!S){
     $("#suStart").value = localDT(Date.now());
     show("setup");
