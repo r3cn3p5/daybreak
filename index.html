@@ -62,6 +62,7 @@
 :root[data-theme="light"] .days{text-shadow:0 0 50px rgba(216,118,31,.3)}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+html{background:var(--ink)}
 body{
   font-family:var(--font-body);
   background:var(--ink);
@@ -826,6 +827,15 @@ function boot(){
 boot();
 setInterval(tick, 1000);
 document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) tick() });
+
+/* iOS: when the on-screen keyboard closes, Safari can leave the fixed body
+   scrolled up, showing a blank band at the bottom — snap the viewport back */
+function reanchor(){
+  if(!document.activeElement || !document.activeElement.matches("input,textarea"))
+    window.scrollTo(0,0);
+}
+document.addEventListener("focusout", ()=>setTimeout(reanchor,60));
+if("visualViewport" in window) visualViewport.addEventListener("resize", reanchor);
 
 /* ================= PWA ================= */
 if("serviceWorker" in navigator && location.protocol.startsWith("http")){
