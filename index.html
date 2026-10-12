@@ -153,6 +153,18 @@ p.sub{color:var(--text-dim);font-size:.9rem;margin-bottom:16px}
 .stat .d{font-size:.75rem;color:var(--text-dim)}
 .stat.money .v{color:var(--sage)} .stat.money{--c:rgba(159,196,144,.14)}
 .stat.units .v{color:var(--sky)} .stat.units{--c:rgba(141,180,216,.14)}
+/* ---- badges ---- */
+.badgewrap{max-height:300px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:12px 8px}
+.badge{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
+.badge .medal{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font-size:1.5rem;
+  background:radial-gradient(circle at 35% 30%, var(--ink-3), var(--ink-2));border:2px solid var(--line-2)}
+.badge.earn .medal{border-color:var(--gold);
+  background:radial-gradient(circle at 35% 30%, rgba(244,196,120,.25), var(--ink-3));
+  box-shadow:0 0 14px rgba(244,196,120,.2)}
+.badge.lock .medal{filter:grayscale(1);opacity:.35}
+.badge .bl{font-size:.6rem;color:var(--text-dim);text-align:center;line-height:1.15}
+.badge.earn .bl{color:var(--gold);font-weight:700}
 /* ---- milestones ---- */
 .miles{margin-top:8px;position:relative;padding-left:26px}
 .miles::before{content:"";position:absolute;left:8px;top:8px;bottom:14px;width:2px;
@@ -339,6 +351,9 @@ hr.sp{border:0;border-top:1px dashed var(--line-2);margin:16px 0}
       <div class="stat money"><div class="k">Money saved</div><div class="v" id="statMoney">£0</div><div class="d" id="statMoneyD">and counting…</div></div>
       <div class="stat units"><div class="k">Units avoided</div><div class="v" id="statUnits">0</div><div class="d" id="statUnitsD">your body thanks you</div></div>
     </div>
+    <h2 class="section">Trophy cabinet</h2>
+    <p class="sub" id="badgeCount"></p>
+    <div class="card"><div class="badgewrap"><div class="badges" id="badgeGrid"></div></div></div>
     <h2 class="section">Milestones</h2>
     <p class="sub">Each one is yours to keep.</p>
     <div class="miles" id="mileList"></div>
@@ -608,7 +623,31 @@ function tick(){
   checkHourly(ms);
   checkWeekly(ms);
 }
+function badgeEmoji(t){
+  if(t < 7*D) return "🥉";
+  if(t < 30*D) return "🥈";
+  if(t < 182*D) return "🥇";
+  if(t < 365*D) return "🏆";
+  if(t < 3652*D) return "💎";
+  return "👑";
+}
+function renderBadges(){
+  const ms = elapsed();
+  const earned = MILES.filter(m=>m[0]<=ms).length;
+  $("#badgeCount").textContent = earned
+    ? `${earned} of ${MILES.length} earned — tap a badge for its date`
+    : `Your first badge arrives at ${MILES[0][1]}.`;
+  $("#badgeGrid").innerHTML = MILES.map(([t,name],i)=>
+    `<div class="badge ${t<=ms?"earn":"lock"}" data-i="${i}">
+      <div class="medal">${badgeEmoji(t)}</div><div class="bl">${name}</div></div>`).join("");
+  $$("#badgeGrid .badge").forEach(b=>b.onclick=()=>{
+    const [t,name] = MILES[+b.dataset.i];
+    const when = new Date(S.start+t).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});
+    toast(t<=elapsed() ? `${badgeEmoji(t)} ${name} — earned ${when}` : `🔒 ${name} — unlocks ${when}`);
+  });
+}
 function renderMiles(){
+  renderBadges();
   const ms = elapsed();
   $("#mileList").innerHTML = MILES.map(([t,name,why])=>{
     const done = ms>=t;
@@ -644,8 +683,8 @@ function checkMilestones(ms){
   const hit = MILES.filter(m=>m[0]<=ms && m[0]>S.lastMilestone).pop();
   if(hit){
     S.lastMilestone = hit[0]; save();
-    toast(`🏆 Milestone: ${hit[1]} alcohol-free!`);
-    notify(`🏆 ${hit[1]} alcohol-free!`, hit[2]);
+    toast(`${badgeEmoji(hit[0])} Badge earned: ${hit[1]} alcohol-free!`);
+    notify(`${badgeEmoji(hit[0])} Badge earned — ${hit[1]} alcohol-free!`, hit[2]);
     renderMiles();
   }
 }
