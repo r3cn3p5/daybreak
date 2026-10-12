@@ -213,7 +213,7 @@ nav{
   position:fixed;bottom:0;left:0;right:0;z-index:50;
   background:var(--nav-bg);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
   border-top:1px solid var(--line-2);
-  padding:6px 10px max(env(safe-area-inset-bottom), 8px);
+  padding:6px 10px max(calc(env(safe-area-inset-bottom) - 12px), 8px);
 }
 .navin{max-width:520px;margin:0 auto;position:relative;
   display:grid;grid-template-columns:1fr 1fr 1.2fr 1fr 1fr;align-items:center}
@@ -237,10 +237,10 @@ nav{
 /* ---- SOS overlay ---- */
 .overlay{position:fixed;inset:0;z-index:100;background:var(--overlay-bg);backdrop-filter:blur(8px);
   display:none;overflow-y:auto;
-  padding:calc(16px + env(safe-area-inset-top)) var(--pad) calc(40px + env(safe-area-inset-bottom))}
+  padding:calc(12px + env(safe-area-inset-top)) var(--pad) calc(40px + env(safe-area-inset-bottom))}
 .overlay.open{display:block;animation:rise .3s ease both}
 .overlay .inner{max-width:520px;margin:0 auto}
-.closex{position:sticky;top:env(safe-area-inset-top, 0px);float:right;z-index:5;
+.closex{position:fixed;top:calc(env(safe-area-inset-top, 0px) + 6px);right:14px;z-index:110;
   background:var(--ink-3);border:1px solid var(--line-2);
   color:var(--text-dim);width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:1rem}
 .breath{
